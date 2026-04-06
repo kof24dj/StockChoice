@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>專業量化選股終端機</title>
+    <style>
+        body { font-family: 'Microsoft JhengHei', sans-serif; background: #121212; color: #e0e0e0; max-width: 1050px; margin: 30px auto; padding: 20px; }
+        h1 { color: #f39c12; text-align: center; margin-bottom: 5px; }
+        
+        /* 🌟 新增：最上方的日期顯示區域 */
+        .date-container { 
+            text-align: center; 
+            margin-bottom: 25px; 
+            font-size: 14px; 
+            color: #888;
+        }
+        #topDateBadge { 
+            background: #2c3e50; 
+            color: #3498db; 
+            padding: 5px 15px; 
+            border-radius: 20px; 
+            border: 1px solid #34495e;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        /* 篩選器面板設計 */
+        .filter-panel { background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; justify-content: center; align-items: center; }
+        .filter-group { display: flex; flex-direction: column; }
+        label { font-size: 13px; color: #aaa; margin-bottom: 5px; }
+        
+        input[type="text"], select { background: #333; color: white; border: 1px solid #555; padding: 8px; border-radius: 4px; font-size: 14px; outline: none; }
+        input[type="text"] { width: 140px; }
+        input[type="text"]::placeholder { color: #888; }
+        
+        button { background: #d35400; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 15px; }
+        button:hover { background: #e67e22; }
+        
+        /* 表格設計 */
+        table { width: 100%; border-collapse: collapse; background: #1e1e1e; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        th, td { padding: 12px; border-bottom: 1px solid #333; text-align: center; }
+        th { background: #2c3e50; color: #3498db; }
+        tr:hover { background: #2a2a2a; }
+        .highlight { color: #e74c3c; font-weight: bold; }
+        .vol { color: #f1c40f; }
+        .chip { color: #e056fd; font-weight: bold; }
+        .bottom-reversal { color: #ff9f43; font-weight: bold; border: 1px solid #ff9f43; padding: 2px 6px; border-radius: 4px; font-size: 12px;}
+        .etf-badge { background: #8e44ad; color: white; padding: 2px 5px; border-radius: 3px; font-size: 10px; margin-left: 5px; vertical-align: middle;}
+        
+        .stock-symbol { font-size: 1.2em; font-weight: bold; color: #fff; }
+        .stock-name { font-size: 0.85em; color: #888; display: block; margin-top: 3px; }
+        
+        #status { text-align: center; color: #95a5a6; margin-bottom: 10px; font-size: 15px; }
+    </style>
+</head>
+<body>
+
+    <h1>🖥️ 專業量化選股終端機</h1>
+    
+    <div class="date-container">
+        系統數據最後更新日期：<span id="topDateBadge">載入中...</span>
+    </div>
+    
+    <div class="filter-panel">
+        <div class="filter-group">
+            <label>🔍 搜尋個股</label>
+            <input type="text" id="searchInput" placeholder="輸入代號/名稱..." onkeyup="if(event.keyCode===13) applyFilters()">
+        </div>
+        
+        <div class="filter-group">
+            <label>商品種類</label>
+            <select id="assetFilter" onchange="applyFilters()">
+                <option value="all">股票 + ETF</option>
+                <option value="股票">僅看 股票</option>
+                <option value="ETF">僅看 ETF</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label>K線與均線</label>
+            <select id="techFilter">
+                <option value="all">不限制</option>
+                <option value="golden">5MA 突破 10MA</option>
+                <option value="bull">均線多頭排列</option>
+                <option value="bottom_reversal">🔥 下影線破底翻</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>價格突破</label>
+            <select id="highFilter">
+                <option value="all">不限制</option>
+                <option value="20H">創 20 日新高</option>
+                <option value="60H">創 60 日新高</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>交易量爆發</label>
+            <select id="volFilter">
+                <option value="all">不限制</option>
+                <option value="1.5">量增 > 1.5 倍</option>
+                <option value="2">量增 > 2 倍</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>法人籌碼</label>
+            <select id="chipFilter">
+                <option value="all">不限制</option>
+                <option value="foreign">外資連買</option>
+                <option value="trust">投信連買</option>
+                <option value="both">外資投信同買</option>
+            </select>
+        </div>
+        <button onclick="applyFilters()">套用篩選</button>
+    </div>
+
+    <p id="status">準備載入中...</p>
+
+    <table id="resultTable" style="display: none;">
+        <thead>
+            <tr>
+                <th>標的</th>
+                <th>收盤價</th>
+                <th>今日成交量</th>
+                <th>量增倍數</th>
+                <th>型態與訊號</th>
+                <th>突破前高</th>
+                <th>法人籌碼</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <script>
+        let masterData = []; 
+
+        window.onload = async function() {
+            try {
+                const response = await fetch(''data.json'');
+                masterData = await response.json();
+                
+                // 🌟 更新上方的日期顯示
+                let dataDate = masterData.length > 0 ? masterData[0].date : "無資料";
+                document.getElementById('topDateBadge').innerText = dataDate;
+                
+                if (masterData.length === 0) {
+                    document.getElementById('status').innerText = '⚠️ 資料庫是空的，請執行「自動掃描.bat」！';
+                } else {
+                    document.getElementById('status').innerText = `✅ 載入成功，共 ${masterData.length} 檔數據。`;
+                    applyFilters();
+                }
+            } catch (error) {
+                document.getElementById('topDateBadge').innerText = "連線失敗";
+                document.getElementById('status').innerText = '❌ 無法連線至伺服器，請確認伺服器黑視窗是否已執行。';
+            }
+        };
+
+        function applyFilters() {
+            if (masterData.length === 0) return;
+
+            const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+            const assetType = document.getElementById('assetFilter').value;
+            const tech = document.getElementById('techFilter').value;
+            const high = document.getElementById('highFilter').value;
+            const vol = parseFloat(document.getElementById('volFilter').value);
+            const chip = document.getElementById('chipFilter').value;
+
+            const filteredData = masterData.filter(stock => {
+                if (searchQuery) {
+                    const matchSymbol = stock.symbol.toLowerCase().includes(searchQuery);
+                    const matchName = stock.name.toLowerCase().includes(searchQuery);
+                    if (!matchSymbol && !matchName) return false;
+                }
+
+                if (assetType !== 'all' && stock.type !== assetType) return false;
+                if (tech === 'golden' && !stock.is_golden) return false;
+                if (tech === 'bull' && !stock.is_bull) return false;
+                if (tech === 'bottom_reversal' && !stock.is_bottom_reversal) return false;
+                if (high === '20H' && !stock.is_20H) return false;
+                if (high === '60H' && !stock.is_60H) return false;
+                if (!isNaN(vol) && stock.vol_ratio < vol) return false;
+                if (chip === 'foreign' && !stock.foreign_buy) return false;
+                if (chip === 'trust' && !stock.trust_buy) return false;
+                if (chip === 'both' && !(stock.foreign_buy && stock.trust_buy)) return false;
+
+                return true; 
+            });
+
+            renderTable(filteredData);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            const table = document.getElementById('resultTable');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                document.getElementById('status').innerText = '找不到符合條件的結果 😅';
+                table.style.display = 'none';
+                return;
+            }
+
+            document.getElementById('status').innerText = `🔥 篩選完成！共找到 ${data.length} 檔符合條件：`;
+            
+            data.forEach(stock => {
+                let techText = [];
+                if(stock.is_golden) techText.push('黃金交叉');
+                if(stock.is_bull) techText.push('多頭排列');
+                if(stock.is_bottom_reversal) techText.push('<span class="bottom-reversal">破底翻抄底</span>');
+                
+                let highText = [];
+                if(stock.is_60H) highText.push('創季新高');
+                else if(stock.is_20H) highText.push('創月新高');
+
+                let chipText = [];
+                if(stock.foreign_buy) chipText.push('外資連買');
+                if(stock.trust_buy) chipText.push('投信連買');
+
+                let etfTag = stock.type === 'ETF' ? '<span class="etf-badge">ETF</span>' : '';
+
+                const row = `<tr>
+                    <td>
+                        <span class="stock-symbol">${stock.symbol}</span>
+                        <span class="stock-name">${stock.name} ${etfTag}</span>
+                    </td>
+                    <td class="highlight">${stock.price}</td>
+                    <td class="vol">${stock.volume.toLocaleString()} 張</td>
+                    <td class="vol">${stock.vol_ratio} 倍</td>
+                    <td style="color: #2ecc71;">${techText.join('<br>') || '-'}</td>
+                    <td style="color: #3498db;">${highText.join(', ') || '-'}</td>
+                    <td class="chip">${chipText.join(' + ') || '-'}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+            table.style.display = 'table';
+        }
+    </script>
+</body>
+</html>
