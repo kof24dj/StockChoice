@@ -7,25 +7,9 @@
         body { font-family: 'Microsoft JhengHei', sans-serif; background: #121212; color: #e0e0e0; max-width: 1050px; margin: 30px auto; padding: 20px; }
         h1 { color: #f39c12; text-align: center; margin-bottom: 5px; }
         
-        /* 🌟 新增：最上方的日期顯示區域 */
-        .date-container { 
-            text-align: center; 
-            margin-bottom: 25px; 
-            font-size: 14px; 
-            color: #888;
-        }
-        #topDateBadge { 
-            background: #2c3e50; 
-            color: #3498db; 
-            padding: 5px 15px; 
-            border-radius: 20px; 
-            border: 1px solid #34495e;
-            font-weight: bold;
-            display: inline-block;
-            margin-left: 8px;
-        }
+        .date-container { text-align: center; margin-bottom: 25px; font-size: 14px; color: #888; }
+        #topDateBadge { background: #2c3e50; color: #3498db; padding: 5px 15px; border-radius: 20px; border: 1px solid #34495e; font-weight: bold; display: inline-block; margin-left: 8px; }
 
-        /* 篩選器面板設計 */
         .filter-panel { background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; justify-content: center; align-items: center; }
         .filter-group { display: flex; flex-direction: column; }
         label { font-size: 13px; color: #aaa; margin-bottom: 5px; }
@@ -37,7 +21,6 @@
         button { background: #d35400; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 15px; }
         button:hover { background: #e67e22; }
         
-        /* 表格設計 */
         table { width: 100%; border-collapse: collapse; background: #1e1e1e; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
         th, td { padding: 12px; border-bottom: 1px solid #333; text-align: center; }
         th { background: #2c3e50; color: #3498db; }
@@ -136,22 +119,22 @@
 
         window.onload = async function() {
             try {
-                const response = await fetch(''data.json'');
+                // 🌟 這裡已經完美改成讀取同一個資料夾下的 data.json 檔案
+                const response = await fetch('data.json');
                 masterData = await response.json();
                 
-                // 🌟 更新上方的日期顯示
                 let dataDate = masterData.length > 0 ? masterData[0].date : "無資料";
                 document.getElementById('topDateBadge').innerText = dataDate;
                 
                 if (masterData.length === 0) {
-                    document.getElementById('status').innerText = '⚠️ 資料庫是空的，請執行「自動掃描.bat」！';
+                    document.getElementById('status').innerText = '⚠️ 暫無數據，請稍後再試！';
                 } else {
                     document.getElementById('status').innerText = `✅ 載入成功，共 ${masterData.length} 檔數據。`;
                     applyFilters();
                 }
             } catch (error) {
                 document.getElementById('topDateBadge').innerText = "連線失敗";
-                document.getElementById('status').innerText = '❌ 無法連線至伺服器，請確認伺服器黑視窗是否已執行。';
+                document.getElementById('status').innerText = '❌ 找不到資料檔 (data.json)，請確認雲端排程是否已成功執行。';
             }
         };
 
